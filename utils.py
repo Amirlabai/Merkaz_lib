@@ -16,7 +16,7 @@ def log_event(filename, data):
         writer = csv.writer(f)
         writer.writerow(data)
 
-def scan_file_for_viruses(file_path):
+def scan_file_for_viruses(file_path): # change to windows defender var "scanner_command"
     """
     Scans a file for viruses using a command-line scanner (e.g., ClamAV).
     This is a placeholder and requires a real scanner to be installed on the server.
