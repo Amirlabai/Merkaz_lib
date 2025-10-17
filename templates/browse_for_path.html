@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TobeKK - Select Folder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Assistant', 'Roboto', 'Arial', sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            padding-top: 40px;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px 40px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 500;
+            color: #202124;
+            margin: 0;
+        }
+        .path-bar { color: #5f6368; font-size: 14px; margin-bottom: 20px; }
+        .path-bar a { color: #1a73e8; text-decoration: none; }
+        .path-bar a:hover { text-decoration: underline; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #e0e0e0; vertical-align: middle;}
+        th { color: #5f6368; font-weight: 500; }
+        tr[data-url]:hover { background-color: #f1f3f4; }
+        .item-name { display: flex; align-items: center; }
+        .item-name svg { margin-right: 12px; width: 20px; height: 20px; fill: #5f6368; }
+        .select-btn {
+            background-color: #1a73e8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+        .select-btn:hover { background-color: #185abc; }
+        .cancel-btn {
+            background-color: #e8eaed;
+            color: #3c4043;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .cancel-btn:hover { background-color: #d2d5d9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Select a Destination Folder</h1>
+            <a href="{{ url_for('uploads.admin_uploads') }}" class="cancel-btn">Cancel</a>
+        </div>
+
+        <p>Choose a folder for the item: <strong>{{ filename }}</strong></p>
+
+        <form action="{{ url_for('files.browse_for_path') }}" method="post" style="margin-bottom: 20px;">
+            <input type="hidden" name="selected_path" value="{{ current_path }}">
+            <button type="submit" class="select-btn">Select Current Folder ({{ current_path or '/' }})</button>
+        </form>
+        
+        <div class="path-bar">
+            <span>/{{ current_path }}</span>
+            {% if current_path %}
+                <a href="{{ url_for('files.browse_for_path', subpath=back_path) }}" style="margin-left: 15px;">⬆️ Go Up</a>
+            {% endif %}
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Folder Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for folder in folders %}
+                    <tr data-url="{{ url_for('files.browse_for_path', subpath=folder.path) }}" style="cursor: pointer;">
+                        <td>
+                            <div class="item-name">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18
+                                            c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8
+                                            c0-1.1-.9-2-2-2h-8l-2-2z">
+                                    </path>
+                                </svg>
+                                <span>{{ folder.name }}/</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td style="text-align: center; color: #5f6368; padding: 30px;">
+                            No sub-folders here.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('tbody tr[data-url]');
+            rows.forEach(row => {
+                row.addEventListener('click', function() {
+                    window.location.href = this.dataset.url;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

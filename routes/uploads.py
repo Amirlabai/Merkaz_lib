@@ -139,6 +139,9 @@ def admin_uploads():
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes", ""), config.UPLOAD_FOLDER)
     grouped_uploads = {}
     
+    # Check for newly selected paths from the browser session
+    new_paths = session.get('new_paths', {})
+
     try:
         with open(config.UPLOAD_LOG_FILE, mode='r', newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
@@ -152,7 +155,12 @@ def admin_uploads():
             if top_level_item not in grouped_uploads:
                 if os.path.exists(os.path.join(upload_dir, top_level_item)):
                     is_part_of_dir_upload = '/' in relative_path or '\\' in relative_path
+                    # Get the original suggested path from the log
                     final_approval_path = os.path.dirname(suggested_full_path) if is_part_of_dir_upload else suggested_full_path
+                    
+                    # If a new path was chosen in the browser, override the original path
+                    if top_level_item in new_paths:
+                        final_approval_path = new_paths[top_level_item]
                     
                     grouped_uploads[top_level_item] = {
                         "timestamp": timestamp, 
@@ -162,6 +170,10 @@ def admin_uploads():
                     }
     except (FileNotFoundError, StopIteration):
         pass
+
+    # Clean up the session so paths don't stick around on the next page load
+    if 'new_paths' in session:
+        session.pop('new_paths', None)
         
     final_uploads_list = sorted(list(grouped_uploads.values()), key=lambda x: x['timestamp'])
     return render_template("admin_uploads.html", uploads=final_uploads_list)
@@ -181,17 +193,22 @@ def move_upload(filename):
         return redirect(url_for("uploads.admin_uploads"))
 
     source_item = os.path.join(upload_dir, filename)
-    destination_path = os.path.join(share_dir, target_path_str)
+    # Correctly handle if the target path is a directory or a full file path
+    if os.path.isdir(source_item):
+        destination_path = os.path.join(share_dir, target_path_str, filename)
+    else:
+        destination_path = os.path.join(share_dir, target_path_str)
+
     
-    safe_destination = os.path.abspath(destination_path)
-    if not safe_destination.startswith(os.path.abspath(share_dir)):
+    safe_destination_dir = os.path.abspath(os.path.dirname(destination_path))
+    if not safe_destination_dir.startswith(os.path.abspath(share_dir)):
         flash("Invalid target path.", "error")
         return redirect(url_for("uploads.admin_uploads"))
 
     try:
-        os.makedirs(os.path.dirname(safe_destination), exist_ok=True)
-        shutil.move(source_item, safe_destination)
-        flash(f'Item "{filename}" has been successfully moved to "{target_path_str}".', "success")
+        os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+        shutil.move(source_item, destination_path)
+        flash(f'Item "{filename}" has been successfully moved.', "success")
     except FileNotFoundError:
         flash(f'Error: Source item "{filename}" not found.', "error")
     except Exception as e:
@@ -223,3 +240,4 @@ def decline_upload(filename):
         flash(f"An error occurred while declining the item: {e}", "error")
 
     return redirect(url_for("uploads.admin_uploads"))
+

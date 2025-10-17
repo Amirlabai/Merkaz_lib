@@ -9,3 +9,4 @@ config.py
 /logs
 /data
 /routes/__pycache__
+.env

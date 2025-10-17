@@ -154,3 +154,66 @@ def suggest():
         session["cooldown_index"] = cooldown_index + 1
     session['suggestion_success'] = "Thank you, your suggestion has been submitted!"
     return redirect(url_for("files.downloads"))
+
+@files_bp.route('/browse_for_path/', defaults={'subpath': ''}, methods=['GET', 'POST'])
+@files_bp.route('/browse_for_path/<path:subpath>', methods=['GET'])
+def browse_for_path(subpath=''):
+    if not session.get("is_admin"):
+        abort(403)
+
+    # Handle POST request first (form submission to select a folder)
+    if request.method == 'POST':
+        filename = session.get('filename_for_path_change')
+        if not filename:
+            flash("Session expired or invalid request.", "error")
+            return redirect(url_for('uploads.admin_uploads'))
+
+        selected_path = request.form.get('selected_path', '')
+        
+        if 'new_paths' not in session:
+            session['new_paths'] = {}
+        session['new_paths'][filename] = selected_path
+        session.modified = True
+        
+        session.pop('filename_for_path_change', None)
+        return redirect(url_for('uploads.admin_uploads'))
+
+    # --- Handle GET request (browsing folders) ---
+
+    # If filename is in args, it's the initial entry from the "Edit" button. Store it in the session.
+    if 'filename' in request.args:
+        session['filename_for_path_change'] = request.args.get('filename')
+    
+    # Now, ensure the filename context exists in the session for navigation.
+    filename = session.get('filename_for_path_change')
+    if not filename:
+        # If no filename in session, the user accessed the browser without clicking "Edit" first.
+        return redirect(url_for('uploads.admin_uploads'))
+    
+    # Proceed with displaying the folder browser
+    share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes", ""), config.SHARE_FOLDER)
+    
+    safe_subpath = os.path.normpath(subpath).replace('\\', '/')
+    if safe_subpath == '.': safe_subpath = ''
+    if '/.' in safe_subpath: return abort(404)
+        
+    current_path = os.path.join(share_dir, safe_subpath)
+    if not os.path.abspath(current_path).startswith(os.path.abspath(share_dir)): return abort(403)
+
+    folders = []
+    if os.path.exists(current_path) and os.path.isdir(current_path):
+        for item_name in os.listdir(current_path):
+            item_path_os = os.path.join(current_path, item_name)
+            if os.path.isdir(item_path_os) and not item_name.startswith('.'):
+                item_path_url = os.path.join(safe_subpath, item_name).replace('\\', '/')
+                folders.append({"name": item_name, "path": item_path_url})
+    
+    folders.sort(key=lambda x: x['name'].lower())
+    back_path = os.path.dirname(safe_subpath).replace('\\', '/') if safe_subpath else None
+
+    return render_template("browse_for_path.html",
+                           folders=folders,
+                           current_path=safe_subpath,
+                           back_path=back_path,
+                           filename=filename)
+
