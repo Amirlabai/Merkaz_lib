@@ -99,6 +99,39 @@
         .flash-messages li { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
         .flash-success { color: #1e8e3e; background-color: #e6f4ea; }
         .flash-error { color: #d93025; background-color: #fce8e6; }
+        .create-folder-box {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .create-folder-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .create-folder-form input[type="text"] {
+            flex-grow: 1;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .create-folder-form button {
+            background-color: #1e8e3e; /* Green */
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .create-folder-form button:hover {
+            background-color: #1a7a35;
+        }
     </style>
 </head>
 <body>
@@ -132,6 +165,16 @@
             {% endif %}
         </div>
         
+        {% if is_admin %}
+        <div class="create-folder-box">
+            <form action="{{ url_for('files.create_folder') }}" method="post" class="create-folder-form">
+                <input type="hidden" name="parent_path" value="{{ current_path }}">
+                <input type="text" name="folder_name" placeholder="New folder name..." required pattern="[^\/\\]*" title="Folder name cannot contain slashes">
+                <button type="submit">Create Folder</button>
+            </form>
+        </div>
+        {% endif %}
+
         <table>
             <thead>
                 <tr>

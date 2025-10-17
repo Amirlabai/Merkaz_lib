@@ -66,6 +66,44 @@ def downloads(subpath=''):
                            is_admin=session.get('is_admin', False))
 
 
+@files_bp.route("/create_folder", methods=["POST"])
+def create_folder():
+    if not session.get("is_admin"):
+        abort(403)
+
+    parent_path = request.form.get("parent_path", "")
+    folder_name = request.form.get("folder_name", "").strip()
+
+    if not folder_name:
+        flash("Folder name cannot be empty.", "error")
+        return redirect(url_for('files.downloads', subpath=parent_path))
+
+    # Sanitize the folder name to prevent path traversal
+    if '/' in folder_name or '\\' in folder_name or '..' in folder_name:
+        flash("Invalid characters in folder name.", "error")
+        return redirect(url_for('files.downloads', subpath=parent_path))
+
+    share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
+    new_folder_path = os.path.join(share_dir, parent_path, folder_name)
+
+    # Security check: ensure the new path is within the share directory
+    if not os.path.abspath(new_folder_path).startswith(os.path.abspath(share_dir)):
+        flash("Invalid path.", "error")
+        return redirect(url_for('files.downloads', subpath=parent_path))
+
+    if os.path.exists(new_folder_path):
+        flash(f"A folder or file named '{folder_name}' already exists.", "error")
+    else:
+        try:
+            os.makedirs(new_folder_path)
+            flash(f"Folder '{folder_name}' created successfully.", "success")
+            log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), "CREATE_FOLDER", os.path.join(parent_path, folder_name)])
+        except Exception as e:
+            flash(f"Error creating folder: {e}", "error")
+
+    return redirect(url_for('files.downloads', subpath=parent_path))
+
+
 @files_bp.route("/delete/<path:item_path>", methods=["POST"])
 def delete_item(item_path):
     if not session.get("is_admin"): abort(403)
@@ -216,4 +254,3 @@ def browse_for_path(subpath=''):
                            current_path=safe_subpath,
                            back_path=back_path,
                            filename=filename)
-
