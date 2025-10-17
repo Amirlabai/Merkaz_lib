@@ -20,7 +20,12 @@ DECLINED_UPLOAD_LOG_FILE = "logs/declined_log.csv"
 # --- Security ---
 SUPER_SECRET_KEY = "your_super_secret_key_here" # Change this to a random string
 TOKEN_SECRET_KEY = "another_secret_key" # Change this to a different random string
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'zip', 'rar', '7z', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}
+ALLOWED_EXTENSIONS = {
+    'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 
+    'zip', 'rar', '7z', 
+    'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'mp4', 'mov', 'avi', 'mkv', 'wmv' # Added video extensions
+}
 
 
 # --- Mail Server ---

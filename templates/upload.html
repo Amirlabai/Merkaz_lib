@@ -109,6 +109,32 @@
         </div>
 
         <div class="upload-section">
+            <h2>Upload Images</h2>
+            <div class="info">
+                You can select multiple image files. The file browser will be filtered for image formats.
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="subpath" value="{{ subpath }}">
+                <input type="file" name="file" required multiple accept="image/*">
+                <br>
+                <button type="submit">Upload Images for Review</button>
+            </form>
+        </div>
+        
+        <div class="upload-section">
+            <h2>Upload Videos</h2>
+            <div class="info">
+                You can select multiple video files. The file browser will be filtered for video formats.
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="subpath" value="{{ subpath }}">
+                <input type="file" name="file" required multiple accept="video/*">
+                <br>
+                <button type="submit">Upload Videos for Review</button>
+            </form>
+        </div>
+
+        <div class="upload-section">
             <h2>Upload a Folder</h2>
             <div class="info">
                 Select a folder to upload all of its contents, including sub-folders.
