@@ -178,5 +178,5 @@ def download_metrics(log_type):
         else:
             return abort(400) # Bad Request
     except Exception as e:
-        print(f"Error during log download for '{log_type}': {e}")
+        current_app.logger(f"Error during log download for '{log_type}': {e}")
         abort(500)

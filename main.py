@@ -1,4 +1,6 @@
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask
 from waitress import serve
 from datetime import datetime, timedelta
@@ -18,6 +20,26 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = config.SUPER_SECRET_KEY
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
+
+    # --- Logging Configuration ---
+    if not app.debug:
+        log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        log_file = 'server.log'
+        # Rotate logs after 5MB, keep 2 backup files
+        file_handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024 * 5, backupCount=2)
+        file_handler.setFormatter(log_formatter)
+        file_handler.setLevel(logging.INFO)
+        
+        # Configure Werkzeug's logger (for HTTP requests)
+        werkzeug_logger = logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(logging.INFO)
+        werkzeug_logger.addHandler(file_handler)
+        
+        # Configure the app's logger
+        app.logger.addHandler(file_handler)
+        app.logger.setLevel(logging.INFO)
+        app.logger.info('Merkaz_lib application starting up...')
+
 
     # --- Mail Configuration ---
     app.config['MAIL_SERVER'] = config.MAIL_SERVER
@@ -59,5 +81,5 @@ if __name__ == "__main__":
 
     app = create_app()
 
-    print("Starting server with Waitress...")
+    app.logger.info("Starting server with Waitress on host 0.0.0.0, port 8000...")
     serve(app, host="0.0.0.0", port=8000)

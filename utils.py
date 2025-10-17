@@ -3,11 +3,12 @@ import csv
 import subprocess
 from io import BytesIO
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask import current_app
 
 try:
     from openpyxl.workbook import Workbook
 except ImportError:
-    print("Warning: openpyxl not found. Excel export will not work. Run 'pip install openpyxl'.")
+    current_app.logger("Warning: openpyxl not found. Excel export will not work. Run 'pip install openpyxl'.")
     class Workbook: pass
 
 def log_event(filename, data):
@@ -38,19 +39,19 @@ def scan_file_for_viruses(file_path): # change to windows defender var "scanner_
     # You might need to adjust 'clamscan' to the actual command or its full path.
     scanner_command = "clamscan"
     if not any(os.access(os.path.join(path, scanner_command), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
-        print(f"WARNING: '{scanner_command}' not found in PATH. Virus scanning is disabled.")
+        current_app.logger(f"WARNING: '{scanner_command}' not found in PATH. Virus scanning is disabled.")
         # In a production environment, you might want to prevent uploads if the scanner is down.
         # For this example, we'll just assume the file is clean.
         return (False, "Clean (Scanner Not Found)")
 
     try:
         # The command for clamscan to scan a file:
-        # --no-summary: Don't print a summary at the end.
-        # -i: Only print infected files.
+        # --no-summary: Don't current_app.logger a summary at the end.
+        # -i: Only current_app.logger infected files.
         # file_path: The path to the file.
         result = subprocess.run([scanner_command, "--no-summary", "-i", file_path], capture_output=True, text=True)
         
-        # If clamscan finds a virus, it will print the file path and "FOUND".
+        # If clamscan finds a virus, it will current_app.logger the file path and "FOUND".
         # Its return code will be 1 for infected files, 0 for clean.
         if result.returncode == 1:
             return (True, result.stdout.strip())
@@ -92,4 +93,4 @@ def create_file_with_header(filename, header):
     if not os.path.exists(filename):
         with open(filename, mode='w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(header)
-        print(f"Created file: {filename}")
+        current_app.logger(f"Created file: {filename}")
