@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from flask import Blueprint, render_template, session, abort, redirect, url_for, flash, send_file, current_app
 
@@ -12,9 +13,10 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def admin_metrics():
     if not session.get("is_admin"): abort(403)
     log_files = [
-        {"type": "session", "name": "Session Log (Login/Logout)", "description": "Track user login and failure events."},
-        {"type": "download", "name": "Download Log (File/Folder/Delete)", "description": "Track all file, folder, and delete events."},
-        {"type": "suggestion", "name": "Suggestion Log (User Feedback)", "description": "Records all user suggestions."},
+        {"type": "session", "name": "Session Log (Login/Logout)", "description": "Track user login and failure events.", "format": "Excel"},
+        {"type": "download", "name": "Download Log (File/Folder/Delete)", "description": "Track all file, folder, and delete events.", "format": "Excel"},
+        {"type": "suggestion", "name": "Suggestion Log (User Feedback)", "description": "Records all user suggestions.", "format": "Excel"},
+        {"type": "upload", "name": "Upload Log (User Submissions)", "description": "A record of all files uploaded by users.", "format": "CSV"}
     ]
     return render_template("admin_metrics.html", log_files=log_files)
 
@@ -134,23 +136,47 @@ def toggle_status(email):
     return redirect(url_for('admin.admin_users'))
 
 @admin_bp.route("/metrics/download/<log_type>")
-def download_metrics_xlsx(log_type):
-    if not session.get("is_admin"): abort(403)
+def download_metrics(log_type):
+    if not session.get("is_admin"):
+        abort(403)
+
+    # Defines all downloadable logs
     log_map = {
-        "session": (config.SESSION_LOG_FILE, "Session_Log"),
-        "download": (config.DOWNLOAD_LOG_FILE, "Download_Log"),
-        "suggestion": (config.SUGGESTION_LOG_FILE, "Suggestion_Log")
+        "session": {"path": config.SESSION_LOG_FILE, "prefix": "Session_Log", "format": "xlsx"},
+        "download": {"path": config.DOWNLOAD_LOG_FILE, "prefix": "Download_Log", "format": "xlsx"},
+        "suggestion": {"path": config.SUGGESTION_LOG_FILE, "prefix": "Suggestion_Log", "format": "xlsx"},
+        "upload": {"path": config.UPLOAD_LOG_FILE, "prefix": "Upload_Log", "format": "csv"}
     }
-    if log_type not in log_map: return abort(404)
-    
-    csv_filepath, file_prefix = log_map[log_type]
-    try:
-        xlsx_data = csv_to_xlsx_in_memory(csv_filepath)
-        download_name = f"{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        return send_file(xlsx_data, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                         download_name=download_name, as_attachment=True)
-    except FileNotFoundError:
+
+    if log_type not in log_map:
         return abort(404)
+
+    log_info = log_map[log_type]
+    csv_filepath = log_info["path"]
+    file_prefix = log_info["prefix"]
+    file_format = log_info["format"]
+
+    if not os.path.exists(csv_filepath):
+        flash(f"Log file for '{log_type}' not found.", "error")
+        return redirect(url_for('admin.admin_metrics'))
+
+    try:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        if file_format == "xlsx":
+            xlsx_data = csv_to_xlsx_in_memory(csv_filepath)
+            download_name = f"{file_prefix}_{timestamp}.xlsx"
+            return send_file(xlsx_data, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                             download_name=download_name, as_attachment=True)
+        elif file_format == "csv":
+            download_name = f"{file_prefix}_{timestamp}.csv"
+            return send_file(
+                csv_filepath,
+                mimetype='text/csv',
+                download_name=download_name,
+                as_attachment=True
+            )
+        else:
+            return abort(400) # Bad Request
     except Exception as e:
-        print(f"Error during XLSX conversion: {e}")
-        return abort(500)
+        print(f"Error during log download for '{log_type}': {e}")
+        abort(500)

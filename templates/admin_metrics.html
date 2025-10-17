@@ -111,12 +111,22 @@
         </div>
 
         <div class="admin-nav">
-            <a href="{{ url_for('admin.admin_metrics') }}" class="nav-tab">Metrics</a>
+            <a href="{{ url_for('admin.admin_metrics') }}" class="nav-tab active">Metrics</a>
             <a href="{{ url_for('admin.admin_users') }}" class="nav-tab">Users</a>
             <a href="{{ url_for('admin.admin_pending') }}" class="nav-tab">Pending</a>
             <a href="{{ url_for('admin.admin_denied') }}" class="nav-tab">Denied</a>
             <a href="{{ url_for('uploads.admin_uploads') }}" class="nav-tab">Uploads</a>
         </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
 
         {% for log in log_files %}
         <div class="log-item">
@@ -124,7 +134,7 @@
                 <h2>{{ log.name }}</h2>
                 <p>{{ log.description }}</p>
             </div>
-            <a href="{{ url_for('admin.download_metrics_xlsx', log_type=log.type) }}" class="download-btn">Download as Excel</a>
+            <a href="{{ url_for('admin.download_metrics', log_type=log.type) }}" class="download-btn">Download as {{ log.format }}</a>
         </div>
         {% endfor %}
 
