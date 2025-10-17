@@ -24,11 +24,31 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             padding: 20px 40px;
         }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
         h1 {
             font-size: 24px;
             font-weight: 500;
             color: #202124;
-            margin-bottom: 15px;
+            margin: 0;
+        }
+        .cancel-btn {
+            background-color: #e8eaed;
+            color: #3c4043;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .cancel-btn:hover {
+            background-color: #d2d5d9;
         }
         h2 {
             font-size: 18px;
@@ -48,11 +68,15 @@
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 20px;
+            line-height: 1.5;
         }
         .upload-section {
-            border-top: 1px solid #ddd;
             padding-top: 25px;
             margin-bottom: 30px;
+        }
+        /* Add a border to all sections except the first one */
+        .upload-section + .upload-section {
+            border-top: 1px solid #ddd;
         }
         input[type="file"] {
             font-size: 14px;
@@ -72,26 +96,14 @@
         button:hover {
             background-color: #185abc;
         }
-        a {
-            color: #1a73e8;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 10px;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Upload Content</h1>
+        <div class="header">
+            <h1>Upload Content</h1>
+            <a href="{{ url_for('files.downloads', subpath=subpath) }}" class="cancel-btn">Cancel</a>
+        </div>
         
         <p>Your upload will be submitted for admin review. If approved, it will be placed in: <strong>/{{ subpath or 'Home' }}</strong></p>
 
@@ -100,6 +112,15 @@
             <div class="info">
                 You can select multiple files at once. Hold down the Ctrl (or Cmd on Mac) key while clicking to select more than one.
             </div>
+             <div class="info">
+                <strong>File Size Limits:</strong><br>
+                - Images (jpg, png, etc.): <strong>{{ limits.image }} MB</strong><br>
+                - Videos (mp4, mov, etc.): <strong>{{ limits.video }} MB</strong><br>
+                - Other Files (pdf, docx, zip, etc.): <strong>{{ limits.file }} MB</strong><br>
+                {% if is_admin %}
+                - As an admin, your limit is <strong>{{ limits.admin }} MB</strong> for all types.
+                {% endif %}
+            </div>
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="subpath" value="{{ subpath }}">
                 <input type="file" name="file" required multiple>
@@ -107,37 +128,11 @@
                 <button type="submit">Upload Files for Review</button>
             </form>
         </div>
-
-        <div class="upload-section">
-            <h2>Upload Images</h2>
-            <div class="info">
-                You can select multiple image files. The file browser will be filtered for image formats.
-            </div>
-            <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="subpath" value="{{ subpath }}">
-                <input type="file" name="file" required multiple accept="image/*">
-                <br>
-                <button type="submit">Upload Images for Review</button>
-            </form>
-        </div>
         
-        <div class="upload-section">
-            <h2>Upload Videos</h2>
-            <div class="info">
-                You can select multiple video files. The file browser will be filtered for video formats.
-            </div>
-            <form method="post" enctype="multipart/form-data">
-                <input type="hidden" name="subpath" value="{{ subpath }}">
-                <input type="file" name="file" required multiple accept="video/*">
-                <br>
-                <button type="submit">Upload Videos for Review</button>
-            </form>
-        </div>
-
         <div class="upload-section">
             <h2>Upload a Folder</h2>
             <div class="info">
-                Select a folder to upload all of its contents, including sub-folders.
+                Select a folder to upload all of its contents, including sub-folders. Individual file limits still apply.
             </div>
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="subpath" value="{{ subpath }}">
@@ -147,8 +142,6 @@
             </form>
         </div>
         
-        <a href="{{ url_for('files.downloads', subpath=subpath) }}" class="back-link">Back to Files</a>
     </div>
 </body>
 </html>
-

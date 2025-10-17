@@ -20,12 +20,20 @@ DECLINED_UPLOAD_LOG_FILE = "logs/declined_log.csv"
 # --- Security ---
 SUPER_SECRET_KEY = "your_super_secret_key_here" # Change this to a random string
 TOKEN_SECRET_KEY = "another_secret_key" # Change this to a different random string
-ALLOWED_EXTENSIONS = {
-    'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 
-    'zip', 'rar', '7z', 
-    'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'mp4', 'mov', 'avi', 'mkv', 'wmv' # Added video extensions
-}
+
+# --- Upload Limits (in megabytes) ---
+MAX_IMAGE_SIZE_MB = 5
+MAX_VIDEO_SIZE_MB = 100
+MAX_FILE_SIZE_MB = 20
+MAX_ADMIN_UPLOAD_SIZE_MB = 500  # Set a high limit for admins
+
+# --- Allowed File Extensions ---
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'wmv'}
+ALLOWED_FILE_EXTENSIONS = {'txt', 'pdf', 'zip', 'rar', '7z', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}
+
+# --- Combined Set for General Validation ---
+ALL_ALLOWED_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS.union(ALLOWED_VIDEO_EXTENSIONS).union(ALLOWED_FILE_EXTENSIONS)
 
 
 # --- Mail Server ---

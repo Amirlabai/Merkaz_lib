@@ -10,10 +10,6 @@ from utils import log_event
 
 uploads_bp = Blueprint('uploads', __name__)
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in config.ALLOWED_EXTENSIONS
-
 def is_file_malicious(file_stream):
     """
     Checks the magic number of a file to determine if it's potentially malicious.
@@ -48,15 +44,37 @@ def upload_file(subpath):
         successful_uploads = []
         
         for file in uploaded_files:
-            if file:
-                if not allowed_file(file.filename):
-                    flash(f"File type not allowed for {file.filename}", "error")
+            if file and '.' in file.filename:
+                file_ext = file.filename.rsplit('.', 1)[1].lower()
+                max_size_mb = 0
+
+                # Determine upload type and rules based on extension
+                if file_ext in config.ALLOWED_IMAGE_EXTENSIONS:
+                    max_size_mb = config.MAX_IMAGE_SIZE_MB
+                elif file_ext in config.ALLOWED_VIDEO_EXTENSIONS:
+                    max_size_mb = config.MAX_VIDEO_SIZE_MB
+                elif file_ext in config.ALLOWED_FILE_EXTENSIONS:
+                    max_size_mb = config.MAX_FILE_SIZE_MB
+                else:
+                    flash(f"File type '.{file_ext}' is not allowed.", "error")
+                    continue
+                
+                # Admins get a higher limit
+                if session.get("is_admin"):
+                    max_size_mb = config.MAX_ADMIN_UPLOAD_SIZE_MB
+
+                # Check file size
+                file.seek(0, os.SEEK_END)
+                file_size_mb = file.tell() / (1024 * 1024)
+                file.seek(0) # Reset stream position
+                if file_size_mb > max_size_mb:
+                    flash(f"'{file.filename}' is too large. The maximum size for this file type is {max_size_mb} MB.", "error")
                     continue
 
                 if is_file_malicious(file.stream):
                     flash(f"Malicious file detected: {file.filename}", "error")
                     continue
-                # filename from the browser can include the relative path for folder uploads
+
                 filename = file.filename
                 
                 # Security check to prevent path traversal attacks
@@ -66,17 +84,14 @@ def upload_file(subpath):
                 
                 save_path = os.path.join(upload_dir, filename)
 
-                # Final security check to ensure the path doesn't escape the upload directory
                 if not os.path.abspath(save_path).startswith(os.path.abspath(upload_dir)):
                     flash(f"Invalid save path for file: '{filename}' was skipped.", "error")
                     continue
 
                 try:
-                    # Create parent directories if they don't exist
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
                     file.save(save_path)
                     
-                    # The suggested path for the file after admin approval
                     final_path_suggestion = os.path.join(upload_subpath, filename).replace('\\', '/')
                     
                     log_event(config.UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email"), filename, final_path_suggestion])
@@ -89,7 +104,18 @@ def upload_file(subpath):
         
         return redirect(url_for('files.downloads', subpath=upload_subpath))
 
-    return render_template('upload.html', subpath=subpath)
+    # For GET requests, pass limits to the template
+    return render_template(
+        'upload.html', 
+        subpath=subpath,
+        limits={
+            'image': config.MAX_IMAGE_SIZE_MB,
+            'video': config.MAX_VIDEO_SIZE_MB,
+            'file': config.MAX_FILE_SIZE_MB,
+            'admin': config.MAX_ADMIN_UPLOAD_SIZE_MB
+        },
+        is_admin=session.get('is_admin', False)
+    )
 
 @uploads_bp.route('/my_uploads')
 def my_uploads():
@@ -225,7 +251,7 @@ def decline_upload(filename):
     item_to_delete = os.path.join(upload_dir, filename)
     user_email = request.form.get("email", "unknown")
     
-    log_event(config.DECLINED_UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_email, filename])
+    log_event(config.DECLINED_UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M%S"), user_email, filename])
 
     try:
         if os.path.exists(item_to_delete):
@@ -240,4 +266,3 @@ def decline_upload(filename):
         flash(f"An error occurred while declining the item: {e}", "error")
 
     return redirect(url_for("uploads.admin_uploads"))
-
