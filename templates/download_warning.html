@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TobeKK - Download Warning</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Assistant', 'Roboto', 'Arial', sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px 40px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 500;
+            color: #c5221f; /* Red */
+            margin: 0 0 15px 0;
+        }
+        p {
+            color: #5f6368;
+            font-size: 16px;
+            margin-bottom: 25px;
+        }
+        .file-name {
+            font-weight: 500;
+            color: #202124;
+            background-color: #f1f3f4;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 25px;
+        }
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+        .confirm-btn {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .confirm-btn:hover {
+            background-color: #185abc;
+        }
+        .cancel-btn {
+            background-color: #e8eaed;
+            color: #3c4043;
+        }
+        .cancel-btn:hover {
+            background-color: #d2d5d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ Potential Risk Warning</h1>
+        <p>You are about to download the following item:</p>
+        <div class="file-name">{{ item_name }}</div>
+        <p>Files are submitted by other users and are not scanned for viruses after being approved. Please ensure you have adequate protection on your device. <strong>Download at your own risk.</strong></p>
+        <div class="actions">
+            <button id="confirmDownloadBtn" class="btn confirm-btn">Download Anyway</button>
+            <a href="javascript:history.back()" class="btn cancel-btn">Cancel</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('confirmDownloadBtn').addEventListener('click', function() {
+            // Start the download by navigating the window to the confirmation URL.
+            // This triggers the browser's download behavior for the file.
+            window.location.href = "{{ confirm_url }}";
+
+            // Use a short timeout to give the browser a moment to process
+            // the download request before navigating the user back.
+            setTimeout(function() {
+                window.history.back();
+            }, 1000); // 1-second delay
+        });
+    </script>
+</body>
+</html>

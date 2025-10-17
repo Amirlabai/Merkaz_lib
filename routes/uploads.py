@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
 
 import config
-from utils import log_event
+from utils import log_event, scan_file_for_viruses
 
 uploads_bp = Blueprint('uploads', __name__)
 
@@ -20,7 +20,7 @@ def is_file_malicious(file_stream):
     file_type = magic.from_buffer(file_signature, mime=True)
 
     # Add more sophisticated checks here if needed
-    if "executable" in file_type:
+    if "executable" in file_type or "x-dosexec" in file_type:
         return True
     
     return False
@@ -72,12 +72,11 @@ def upload_file(subpath):
                     continue
 
                 if is_file_malicious(file.stream):
-                    flash(f"Malicious file detected: {file.filename}", "error")
+                    flash(f"Malicious file detected and rejected: {file.filename}", "error")
                     continue
 
                 filename = file.filename
                 
-                # Security check to prevent path traversal attacks
                 if '..' in filename.split('/') or '..' in filename.split('\\') or os.path.isabs(filename):
                     flash(f"Invalid path in filename: '{filename}' was skipped.", "error")
                     continue
@@ -92,6 +91,14 @@ def upload_file(subpath):
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
                     file.save(save_path)
                     
+                    # --- Scan the file for viruses ---
+                    is_malicious, scan_message = scan_file_for_viruses(save_path)
+                    if is_malicious:
+                        os.remove(save_path) # Delete the infected file
+                        flash(f"Virus detected in '{filename}'. Upload rejected. Details: {scan_message}", "error")
+                        log_event(config.UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email"), filename, "VIRUS_DETECTED"])
+                        continue # Move to the next file
+
                     final_path_suggestion = os.path.join(upload_subpath, filename).replace('\\', '/')
                     
                     log_event(config.UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email"), filename, final_path_suggestion])
@@ -117,6 +124,7 @@ def upload_file(subpath):
         is_admin=session.get('is_admin', False)
     )
 
+# ... (the rest of your uploads.py remains the same) ...
 @uploads_bp.route('/my_uploads')
 def my_uploads():
     if not session.get('logged_in'):

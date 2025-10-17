@@ -198,7 +198,7 @@
                         </td>
                         <td style="text-align: center;">
                             <div class="action-cell">
-                                <a href="{{ url_for('files.download_folder' if item.is_folder else 'files.download_file', folder_path=item.path if item.is_folder else None, file_path=item.path if not item.is_folder else None) }}" class="action-btn download-btn">Download</a>
+                                <a href="{{ url_for('files.download_warning', item_path=item.path) }}" class="action-btn download-btn">Download</a>
                                 {% if is_admin %}
                                     <form action="{{ url_for('files.delete_item', item_path=item.path) }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
                                         <button type="submit" class="action-btn delete-btn">Delete</button>
