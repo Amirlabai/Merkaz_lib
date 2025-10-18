@@ -37,20 +37,23 @@ def scan_file_for_viruses(file_path): # change to windows defender var "scanner_
     
     # Check if the scanner command exists.
     # You might need to adjust 'clamscan' to the actual command or its full path.
-    scanner_command = "clamscan"
-    if not any(os.access(os.path.join(path, scanner_command), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
-        current_app.logger(f"WARNING: '{scanner_command}' not found in PATH. Virus scanning is disabled.")
+    scanner_command = r"C:\Program Files\Windows Defender\MpCmdRun.exe"
+    #if not any(os.access(os.path.join(path, scanner_command), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
+        #current_app.logger(f"WARNING: '{scanner_command}' not found in PATH. Virus scanning is disabled.")
         # In a production environment, you might want to prevent uploads if the scanner is down.
         # For this example, we'll just assume the file is clean.
-        return (False, "Clean (Scanner Not Found)")
+        #return (False, "Clean (Scanner Not Found)")
 
     try:
         # The command for clamscan to scan a file:
         # --no-summary: Don't current_app.logger a summary at the end.
         # -i: Only current_app.logger infected files.
         # file_path: The path to the file.
-        result = subprocess.run([scanner_command, "--no-summary", "-i", file_path], capture_output=True, text=True)
-        
+        result = subprocess.run([scanner_command, "-Scan", "-ScanType", "3", "-File", file_path], capture_output=True, text=True)
+
+        current_app.logger(result.stdout)
+        current_app.logger(result.stderr)
+
         # If clamscan finds a virus, it will current_app.logger the file path and "FOUND".
         # Its return code will be 1 for infected files, 0 for clean.
         if result.returncode == 1:

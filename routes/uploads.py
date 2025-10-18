@@ -1,7 +1,6 @@
 import os
 import csv
 import shutil
-import magic
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
 
@@ -9,21 +8,6 @@ import config
 from utils import log_event, scan_file_for_viruses
 
 uploads_bp = Blueprint('uploads', __name__)
-
-def is_file_malicious(file_stream):
-    """
-    Checks the magic number of a file to determine if it's potentially malicious.
-    """
-    file_signature = file_stream.read(2048)  # Read the first 2048 bytes
-    file_stream.seek(0)  # Reset stream position
-    
-    file_type = magic.from_buffer(file_signature, mime=True)
-
-    # Add more sophisticated checks here if needed
-    if "executable" in file_type or "x-dosexec" in file_type:
-        return True
-    
-    return False
 
 
 @uploads_bp.route("/upload", defaults={'subpath': ''}, methods=["GET", "POST"])
@@ -69,10 +53,6 @@ def upload_file(subpath):
                 file.seek(0) # Reset stream position
                 if file_size_mb > max_size_mb:
                     flash(f"'{file.filename}' is too large. The maximum size for this file type is {max_size_mb} MB.", "error")
-                    continue
-
-                if is_file_malicious(file.stream):
-                    flash(f"Malicious file detected and rejected: {file.filename}", "error")
                     continue
 
                 filename = file.filename
