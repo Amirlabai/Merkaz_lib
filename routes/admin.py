@@ -13,7 +13,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 def require_admin():
     # 1. First, check if the user is logged in at all.
     if not session.get("logged_in"):
-        flash("You must be logged in to access this page.", "error")
+        #flash("You must be logged in to access this page.", "error")
         # --- MODIFICATION START ---
         # Store the URL the user was trying to access.
         session['next'] = request.url
