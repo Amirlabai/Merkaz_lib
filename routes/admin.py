@@ -9,9 +9,15 @@ from mailer import send_approval_email, send_denial_email
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+@admin_bp.before_request
+def require_admin():
+    if not session.get("is_admin"):
+        flash("You do not have permission to access this page.", "error")
+        return redirect(url_for('files.downloads'))
+
 @admin_bp.route("/metrics")
 def admin_metrics():
-    if not session.get("is_admin"): abort(403)
+    # The check is now handled by before_request
     log_files = [
         {"type": "session", "name": "Session Log (Login/Logout)", "description": "Track user login and failure events.", "format": "Excel"},
         {"type": "download", "name": "Download Log (File/Folder/Delete)", "description": "Track all file, folder, and delete events.", "format": "Excel"},
@@ -22,25 +28,21 @@ def admin_metrics():
 
 @admin_bp.route("/users")
 def admin_users():
-    if not session.get("is_admin"): abort(403)
     all_users = User.get_all()
     return render_template("admin_users.html", users=all_users, current_user_email=session.get('email'))
 
 @admin_bp.route("/pending")
 def admin_pending():
-    if not session.get("is_admin"): abort(403)
     pending_users = User.get_pending()
     return render_template("admin_pending.html", users=pending_users)
 
 @admin_bp.route("/denied")
 def admin_denied():
-    if not session.get("is_admin"): abort(403)
     denied_users = User.get_denied()
     return render_template("admin_denied.html", users=denied_users)
 
 @admin_bp.route("/approve/<string:email>", methods=["POST"])
 def approve_user(email):
-    if not session.get("is_admin"): abort(403)
     pending_users = User.get_pending()
     user_to_approve = next((user for user in pending_users if user.email == email), None)
 
@@ -60,7 +62,6 @@ def approve_user(email):
 
 @admin_bp.route("/deny/<string:email>", methods=["POST"])
 def deny_user(email):
-    if not session.get("is_admin"): abort(403)
     pending_users = User.get_pending()
     user_to_deny = next((user for user in pending_users if user.email == email), None)
 
@@ -79,7 +80,6 @@ def deny_user(email):
 
 @admin_bp.route("/re_pend/<string:email>", methods=["POST"])
 def re_pend_user(email):
-    if not session.get("is_admin"): abort(403)
     denied_users = User.get_denied()
     user_to_re_pend = next((user for user in denied_users if user.email == email), None)
 
@@ -97,7 +97,6 @@ def re_pend_user(email):
 
 @admin_bp.route("/toggle_role/<string:email>", methods=["POST"])
 def toggle_role(email):
-    if not session.get("is_admin"): abort(403)
     if email == session.get('email'):
         flash("For security, you cannot change your own admin status.", "error")
         return redirect(url_for('admin.admin_users'))
@@ -117,7 +116,6 @@ def toggle_role(email):
 
 @admin_bp.route("/toggle_status/<string:email>", methods=["POST"])
 def toggle_status(email):
-    if not session.get("is_admin"): abort(403)
     if email == session.get('email'):
         flash("You cannot change your own status.", "error")
         return redirect(url_for('admin.admin_users'))
@@ -137,10 +135,6 @@ def toggle_status(email):
 
 @admin_bp.route("/metrics/download/<log_type>")
 def download_metrics(log_type):
-    if not session.get("is_admin"):
-        abort(403)
-
-    # Defines all downloadable logs
     log_map = {
         "session": {"path": config.SESSION_LOG_FILE, "prefix": "Session_Log", "format": "xlsx"},
         "download": {"path": config.DOWNLOAD_LOG_FILE, "prefix": "Download_Log", "format": "xlsx"},
@@ -149,7 +143,7 @@ def download_metrics(log_type):
     }
 
     if log_type not in log_map:
-        return abort(404)
+        abort(404)
 
     log_info = log_map[log_type]
     csv_filepath = log_info["path"]
@@ -176,7 +170,7 @@ def download_metrics(log_type):
                 as_attachment=True
             )
         else:
-            return abort(400) # Bad Request
+            return abort(400)
     except Exception as e:
-        current_app.logger(f"Error during log download for '{log_type}': {e}")
+        current_app.logger.error(f"Error during log download for '{log_type}': {e}")
         abort(500)

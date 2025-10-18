@@ -69,7 +69,8 @@ def downloads(subpath=''):
 @files_bp.route("/create_folder", methods=["POST"])
 def create_folder():
     if not session.get("is_admin"):
-        abort(403)
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for('files.downloads'))
 
     parent_path = request.form.get("parent_path", "")
     folder_name = request.form.get("folder_name", "").strip()
@@ -104,7 +105,9 @@ def create_folder():
 
 @files_bp.route("/delete/<path:item_path>", methods=["POST"])
 def delete_item(item_path):
-    if not session.get("is_admin"): abort(403)
+    if not session.get("is_admin"):
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for('files.downloads'))
     
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
     trash_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.TRASH_FOLDER)
@@ -220,7 +223,8 @@ def suggest():
 @files_bp.route('/browse_for_path/<path:subpath>', methods=['GET'])
 def browse_for_path(subpath=''):
     if not session.get("is_admin"):
-        abort(403)
+        flash("You do not have permission to access this page.", "error")
+        return redirect(url_for('files.downloads'))
 
     # Handle POST request first (form submission to select a folder)
     if request.method == 'POST':

@@ -148,7 +148,8 @@ def my_uploads():
 @uploads_bp.route("/admin/uploads")
 def admin_uploads():
     if not session.get("is_admin"):
-        abort(403)
+        flash("You do not have permission to access this page.", "error")
+        return redirect(url_for('files.downloads'))
         
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes", ""), config.UPLOAD_FOLDER)
     grouped_uploads = {}
@@ -196,7 +197,8 @@ def admin_uploads():
 @uploads_bp.route("/admin/move_upload/<path:filename>", methods=["POST"])
 def move_upload(filename):
     if not session.get("is_admin"):
-        abort(403)
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for('uploads.admin_uploads'))
         
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.UPLOAD_FOLDER)
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
@@ -233,7 +235,8 @@ def move_upload(filename):
 @uploads_bp.route("/admin/decline_upload/<path:filename>", methods=["POST"])
 def decline_upload(filename):
     if not session.get("is_admin"):
-        abort(403)
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for('uploads.admin_uploads'))
         
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.UPLOAD_FOLDER)
     item_to_delete = os.path.join(upload_dir, filename)
