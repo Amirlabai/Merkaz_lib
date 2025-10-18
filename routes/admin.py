@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from flask import Blueprint, render_template, session, abort, redirect, url_for, flash, send_file, current_app
+from flask import Blueprint, render_template, session, abort, redirect, url_for, flash, send_file, current_app, request
 
 import config
 from user import User
@@ -11,6 +11,16 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @admin_bp.before_request
 def require_admin():
+    # 1. First, check if the user is logged in at all.
+    if not session.get("logged_in"):
+        flash("You must be logged in to access this page.", "error")
+        # --- MODIFICATION START ---
+        # Store the URL the user was trying to access.
+        session['next'] = request.url
+        # --- MODIFICATION END ---
+        return redirect(url_for('auth.login'))
+    
+    # 2. If they are logged in, then check if they are an admin.
     if not session.get("is_admin"):
         flash("You do not have permission to access this page.", "error")
         return redirect(url_for('files.downloads'))

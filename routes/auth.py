@@ -45,7 +45,11 @@ def login():
         
         if login_success:
             log_event(config.SESSION_LOG_FILE, [timestamp, email, "LOGIN_SUCCESS"])
-            return redirect(url_for("files.downloads"))
+            # --- MODIFICATION START ---
+            # Check for a 'next' URL in the session to redirect back.
+            next_url = session.pop('next', None)
+            return redirect(next_url or url_for("files.downloads"))
+            # --- MODIFICATION END ---
         else:
             log_event(config.SESSION_LOG_FILE, [timestamp, email, "LOGIN_FAIL"])
             if not error:
@@ -140,4 +144,3 @@ def reset_password(token):
             flash("An error occurred. Please try again.", "error")
 
     return render_template("reset_password.html", token=token)
-

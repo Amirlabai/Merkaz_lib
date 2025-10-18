@@ -10,11 +10,20 @@ from utils import log_event
 
 files_bp = Blueprint('files', __name__)
 
+# --- NEW: Add a before_request handler to check login for all routes in this blueprint ---
+@files_bp.before_request
+def require_login():
+    if not session.get("logged_in"):
+        session['next'] = request.url
+        flash("You must be logged in to view this page.", "error")
+        return redirect(url_for("auth.login"))
+
+
 @files_bp.route('/')
 @files_bp.route('/browse/', defaults={'subpath': ''})
 @files_bp.route('/browse/<path:subpath>')
 def downloads(subpath=''):
-    if not session.get("logged_in"): return redirect(url_for("auth.login"))
+    # REMOVED: The old login check is no longer needed here.
     
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
 
@@ -96,7 +105,7 @@ def create_folder():
         try:
             os.makedirs(new_folder_path)
             flash(f"Folder '{folder_name}' created successfully.", "success")
-            log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M%S"), session.get("email", "unknown"), "CREATE_FOLDER", os.path.join(parent_path, folder_name)])
+            log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), "CREATE_FOLDER", os.path.join(parent_path, folder_name)])
         except Exception as e:
             flash(f"Error creating folder: {e}", "error")
 
@@ -126,7 +135,7 @@ def delete_item(item_path):
     try:
         shutil.move(source_path, dest_path)
         flash(f"Successfully moved '{base_name}' to trash.", "success")
-        log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M%S"), session.get("email", "unknown"), "DELETE", item_path])
+        log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), "DELETE", item_path])
     except Exception as e:
         flash(f"Error deleting item: {e}", "error")
 
@@ -135,12 +144,10 @@ def delete_item(item_path):
         return redirect(url_for('files.downloads', subpath=parent_folder))
     return redirect(url_for('files.downloads'))
 
-# --- NEW: Download Warning Route ---
+
 @files_bp.route("/download/warning/<path:item_path>")
 def download_warning(item_path):
-    if not session.get("logged_in"):
-        return redirect(url_for("auth.login"))
-
+    # REMOVED: The old login check is no longer needed here.
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
     full_path = os.path.join(share_dir, item_path)
 
@@ -157,10 +164,10 @@ def download_warning(item_path):
 
     return render_template("download_warning.html", item_name=item_name, confirm_url=confirm_url)
 
-# --- MODIFIED: Renamed to add '_confirmed' ---
+
 @files_bp.route("/download/file/confirmed/<path:file_path>")
 def download_file_confirmed(file_path):
-    if not session.get("logged_in"): return redirect(url_for("auth.login"))
+    # REMOVED: The old login check is no longer needed here.
     log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), "FILE", file_path])
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
 
@@ -169,11 +176,11 @@ def download_file_confirmed(file_path):
     if not safe_dir.startswith(share_dir) or not os.path.isdir(safe_dir): return abort(403)
     return send_from_directory(safe_dir, filename, as_attachment=True)
 
-# --- MODIFIED: Renamed to add '_confirmed' ---
+
 @files_bp.route("/download/folder/confirmed/<path:folder_path>")
 def download_folder_confirmed(folder_path):
-    if not session.get("logged_in"): return redirect(url_for("auth.login"))
-    log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M%S"), session.get("email", "unknown"), "FOLDER", folder_path])
+    # REMOVED: The old login check is no longer needed here.
+    log_event(config.DOWNLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), "FOLDER", folder_path])
     share_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.SHARE_FOLDER)
 
     absolute_folder_path = os.path.join(share_dir, folder_path)
@@ -188,11 +195,11 @@ def download_folder_confirmed(folder_path):
     memory_file.seek(0)
     return send_file(memory_file, download_name=f'{os.path.basename(folder_path)}.zip', as_attachment=True)
 
-# ... (rest of the file remains the same) ...
+
 COOLDOWN_LEVELS = [60, 300, 600, 1800, 3600]
 @files_bp.route("/suggest", methods=["POST"])
 def suggest():
-    if not session.get("logged_in"): return redirect(url_for("auth.login"))
+    # REMOVED: The old login check is no longer needed here.
     suggestion_text = request.form.get("suggestion")
     if not suggestion_text: return redirect(url_for("files.downloads"))
     
@@ -212,7 +219,7 @@ def suggest():
             session['suggestion_error'] = f"You must wait another {remaining} minute(s) before submitting again."
             return redirect(url_for('files.downloads'))
             
-    log_event(config.SUGGESTION_LOG_FILE, [now.strftime("%Y-%m-%d %H:%M%S"), session.get("email", "unknown"), suggestion_text])
+    log_event(config.SUGGESTION_LOG_FILE, [now.strftime("%Y-%m-%d %H:%M:%S"), session.get("email", "unknown"), suggestion_text])
     session["last_suggestion_time"] = now.isoformat()
     if cooldown_index < len(COOLDOWN_LEVELS) - 1:
         session["cooldown_index"] = cooldown_index + 1

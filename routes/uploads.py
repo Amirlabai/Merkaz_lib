@@ -9,13 +9,19 @@ from utils import log_event, scan_file_for_viruses
 
 uploads_bp = Blueprint('uploads', __name__)
 
+# --- NEW: Add a before_request handler to check login for all routes in this blueprint ---
+@uploads_bp.before_request
+def require_login():
+    if not session.get("logged_in"):
+        session['next'] = request.url
+        flash("You must be logged in to view this page.", "error")
+        return redirect(url_for("auth.login"))
+
 
 @uploads_bp.route("/upload", defaults={'subpath': ''}, methods=["GET", "POST"])
 @uploads_bp.route("/upload/<path:subpath>", methods=["GET", "POST"])
 def upload_file(subpath):
-    if not session.get("logged_in"):
-        return redirect(url_for("auth.login"))
-        
+    # REMOVED: The old login check is no longer needed here.
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.UPLOAD_FOLDER)
         
     if request.method == "POST":
@@ -104,12 +110,10 @@ def upload_file(subpath):
         is_admin=session.get('is_admin', False)
     )
 
-# ... (the rest of your uploads.py remains the same) ...
+
 @uploads_bp.route('/my_uploads')
 def my_uploads():
-    if not session.get('logged_in'):
-        return redirect(url_for('auth.login'))
-
+    # REMOVED: The old login check is no longer needed here.
     upload_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)).replace("routes",""), config.UPLOAD_FOLDER)
     user_email = session.get('email')
     user_uploads = []
@@ -242,7 +246,7 @@ def decline_upload(filename):
     item_to_delete = os.path.join(upload_dir, filename)
     user_email = request.form.get("email", "unknown")
     
-    log_event(config.DECLINED_UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M%S"), user_email, filename])
+    log_event(config.DECLINED_UPLOAD_LOG_FILE, [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user_email, filename])
 
     try:
         if os.path.exists(item_to_delete):
