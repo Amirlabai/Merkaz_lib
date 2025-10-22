@@ -101,11 +101,37 @@
         .role-user { background-color: #e8eaed; color: #3c4043; }
         .status-active { background-color: #e6f4ea; color: #1e8e3e; }
         .status-inactive { background-color: #fce8e6; color: #c5221f; }
+        .online-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .online { background-color: #1e8e3e; }
+        .offline { background-color: #ccc; }
         .flash-messages { list-style: none; padding: 0; margin-bottom: 15px; }
         .flash-messages li { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
         .flash-success { color: #1e8e3e; background-color: #e6f4ea; }
         .flash-error { color: #d93025; background-color: #fce8e6; }
         .actions-cell { display: flex; gap: 5px; justify-content: center; }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination a {
+            color: #1a73e8;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color .3s;
+            border: 1px solid #ddd;
+            margin: 0 4px;
+        }
+        .pagination a.active {
+            background-color: #1a73e8;
+            color: white;
+            border: 1px solid #1a73e8;
+        }
     </style>
 </head>
 <body>
@@ -139,6 +165,7 @@
                     <th>Email</th>
                     <th style="width: 15%; text-align: center;">Role</th>
                     <th style="width: 15%; text-align: center;">Status</th>
+                    <th style="width: 15%; text-align: center;">Online Status</th>
                     <th style="width: 30%; text-align: center;">Actions</th>
                 </tr>
             </thead>
@@ -158,6 +185,13 @@
                                 <span class="badge status-active">Active</span>
                             {% else %}
                                 <span class="badge status-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if user.online_status %}
+                                <span class="online-status online"></span> Online
+                            {% else %}
+                                <span class="online-status offline"></span> Offline
                             {% endif %}
                         </td>
                         <td class="actions-cell">
@@ -182,10 +216,24 @@
                         </td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="4" style="text-align: center; color: #5f6368; padding: 30px;">No users found.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; color: #5f6368; padding: 30px;">No users found.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        <div class="pagination">
+            {% if total_pages > 1 %}
+                {% if page > 1 %}
+                    <a href="{{ url_for('admin.admin_users', page=page-1) }}">&laquo;</a>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                    <a href="{{ url_for('admin.admin_users', page=p) }}" class="{{ 'active' if p == page else '' }}">{{ p }}</a>
+                {% endfor %}
+                {% if page < total_pages %}
+                    <a href="{{ url_for('admin.admin_users', page=page+1) }}">&raquo;</a>
+                {% endif %}
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>

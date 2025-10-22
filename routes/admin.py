@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone # Import timezone
 from flask import Blueprint, render_template, session, abort, redirect, url_for, flash, send_file, current_app, request
 
 import config
@@ -19,7 +19,7 @@ def require_admin():
         session['next'] = request.url
         # --- MODIFICATION END ---
         return redirect(url_for('auth.login'))
-    
+
     # 2. If they are logged in, then check if they are an admin.
     if not session.get("is_admin"):
         flash("You do not have permission to access this page.", "error")
@@ -39,7 +39,32 @@ def admin_metrics():
 @admin_bp.route("/users")
 def admin_users():
     all_users = User.get_all()
-    return render_template("admin_users.html", users=all_users, current_user_email=session.get('email'))
+    # Use the modern, timezone-aware method
+    online_cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+
+    for user in all_users:
+        last_seen = current_app.user_last_seen.get(user.email)
+        if last_seen and last_seen > online_cutoff:
+            user.online_status = True
+        else:
+            user.online_status = False
+
+    # Sort users by online status (online users first)
+    all_users.sort(key=lambda x: x.online_status, reverse=True)
+
+    # Pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_users = all_users[start:end]
+    total_pages = (len(all_users) + per_page - 1) // per_page
+
+    return render_template("admin_users.html", 
+                           users=paginated_users, 
+                           current_user_email=session.get('email'),
+                           page=page,
+                           total_pages=total_pages)
 
 @admin_bp.route("/pending")
 def admin_pending():
@@ -153,7 +178,7 @@ def download_metrics(log_type):
     }
 
     if log_type not in log_map:
-        abort(404)
+        abort(44)
 
     log_info = log_map[log_type]
     csv_filepath = log_info["path"]

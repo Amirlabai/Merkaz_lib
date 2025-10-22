@@ -9,6 +9,7 @@ class User:
         self.password = password  # This will now be a hashed password
         self.role = role
         self.status = status
+        self.online_status = False # Add online status
 
     @property
     def is_admin(self):

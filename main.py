@@ -1,9 +1,9 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask
+from flask import Flask, session
 from waitress import serve
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone # Import timezone
 
 import config
 from utils import create_file_with_header
@@ -20,6 +20,17 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = config.SUPER_SECRET_KEY
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
+
+    # --- User Activity Tracking ---
+    app.user_last_seen = {}
+
+    @app.before_request
+    def before_request_func():
+        if session.get("logged_in"):
+            email = session.get("email")
+            if email:
+                # Use the modern, timezone-aware method
+                app.user_last_seen[email] = datetime.now(timezone.utc)
 
     # --- Logging Configuration ---
     if not app.debug:
